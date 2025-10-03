@@ -29,9 +29,20 @@
         }
         data.games.forEach((game) => {
             const card = document.createElement('article');
-            card.className = 'game-card';
+            card.className = 'game-card' + (game.inDevelopment ? ' in-dev' : '');
+
+            const images = Array.isArray(game.images) && game.images.length ? game.images : [];
+            const initialImage = images[0] || '';
+
             card.innerHTML = [
-                `<img class="game-media" src="${escapeHtml(game.image || '')}" alt="${escapeHtml(game.title || 'Game')} cover" loading="lazy">`,
+                '<div class="gallery">',
+                '  <button class="gallery-nav prev" aria-label="Previous image" type="button">&#10094;</button>',
+                '  <div class="gallery-viewport">',
+                `    <img class="game-media" src="${escapeHtml(initialImage)}" alt="${escapeHtml(game.title || 'Game')} cover" loading="lazy">`,
+                '  </div>',
+                '  <button class="gallery-nav next" aria-label="Next image" type="button">&#10095;</button>',
+                '  <div class="gallery-thumbs" role="tablist" aria-label="Game screenshots"></div>',
+                '</div>',
                 '<div class="game-body">',
                 `  <h3 class="game-title">${escapeHtml(game.title || '')}</h3>`,
                 `  <p class="game-tagline">${escapeHtml(game.tagline || '')}</p>`,
@@ -40,7 +51,11 @@
                 renderActions(game),
                 '</div>'
             ].join('\n');
+
             gamesGrid.appendChild(card);
+
+            // Initialize gallery interactions per card
+            initGallery(card, images);
         });
     }
 
@@ -93,7 +108,15 @@
 
     function renderMeta(game) {
         const items = [];
-        if (game.year) items.push(`${escapeHtml(String(game.year))}`);
+        if (typeof game.year === 'number') {
+            if (game.year < 0) {
+                items.push('Coming soon');
+            } else if (game.year > 0) {
+                items.push(escapeHtml(String(game.year)));
+            }
+        } else if (game.year) {
+            items.push(escapeHtml(String(game.year)));
+        }
         if (!items.length) return '';
         return `<div class="meta">${items.map((m) => `<span>${m}</span>`).join('')}</div>`;
     }
@@ -103,7 +126,12 @@
         const buttons = game.links.map((l) => {
             const classes = ['button'];
             if (l.variant === 'primary') classes.push('primary');
-            return `<a class="${classes.join(' ')}" href="${escapeAttribute(l.url)}" target="_blank" rel="noopener">${escapeHtml(l.label || 'Open')}</a>`;
+            const titleAttr = (typeof l.hoverText === 'string' && l.hoverText.trim().length > 0)
+                ? ` title="${escapeAttribute(l.hoverText)}"`
+                : '';
+            if(l.url === '') 
+                return `<div class="${classes.join(' ')}" target="_blank" rel="noopener"${titleAttr}>${escapeHtml(l.label || 'Open')}</div>`;
+            return `<a class="${classes.join(' ')}" href="${escapeAttribute(l.url)}" target="_blank" rel="noopener"${titleAttr}>${escapeHtml(l.label || 'Open')}</a>`;
         }).join('');
         return `<div class="card-actions">${buttons}</div>`;
     }
@@ -130,10 +158,13 @@
 
     function iconHtmlFor(id) {
         if (id === 'telegram') {
-            return `<img src="telegram.png" alt="Telegram" class="icon-img" loading="lazy">`;
+            return `<img src="images/telegram_icon.png" alt="Telegram" class="icon-img" loading="lazy">`;
+        }
+        if (id === 'email') {
+            return `<img src="images/email.png" alt="Email" class="icon-img" loading="lazy">`;
         }
         switch (id) {
-            case 'email': return '✉️';
+            // case 'email': return '✉️';
             default: return '🔗';
         }
     }
@@ -151,6 +182,58 @@
         }
         lastY = y;
     }, { passive: true });
+
+    function initGallery(cardEl, images) {
+        if (!cardEl) return;
+        const viewportImg = cardEl.querySelector('.gallery-viewport .game-media');
+        const prevBtn = cardEl.querySelector('.gallery-nav.prev');
+        const nextBtn = cardEl.querySelector('.gallery-nav.next');
+        const thumbsEl = cardEl.querySelector('.gallery-thumbs');
+        if (!viewportImg || !prevBtn || !nextBtn || !thumbsEl) return;
+
+        let currentIndex = 0;
+
+        function setIndex(newIndex) {
+            if (!Array.isArray(images) || images.length === 0) return;
+            currentIndex = (newIndex + images.length) % images.length;
+            const nextSrc = images[currentIndex];
+            viewportImg.src = nextSrc;
+            updateThumbActive();
+        }
+
+        function updateThumbActive() {
+            const buttons = thumbsEl.querySelectorAll('.thumb');
+            buttons.forEach((b, i) => {
+                if (i === currentIndex) b.classList.add('active'); else b.classList.remove('active');
+                b.setAttribute('aria-selected', i === currentIndex ? 'true' : 'false');
+                b.tabIndex = i === currentIndex ? 0 : -1;
+            });
+        }
+
+        // Build thumbnails
+        thumbsEl.innerHTML = '';
+        images.forEach((src, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'thumb' + (i === 0 ? ' active' : '');
+            btn.type = 'button';
+            btn.setAttribute('role', 'tab');
+            btn.setAttribute('aria-label', `Open image ${i + 1}`);
+            btn.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+            btn.tabIndex = i === 0 ? 0 : -1;
+            btn.innerHTML = `<img src="${escapeAttribute(src)}" alt="Thumbnail ${i + 1}">`;
+            btn.addEventListener('click', () => setIndex(i));
+            thumbsEl.appendChild(btn);
+        });
+
+        prevBtn.addEventListener('click', () => setIndex(currentIndex - 1));
+        nextBtn.addEventListener('click', () => setIndex(currentIndex + 1));
+
+        // Keyboard support on arrows
+        cardEl.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') { setIndex(currentIndex - 1); }
+            if (e.key === 'ArrowRight') { setIndex(currentIndex + 1); }
+        });
+    }
 })();
 
 
