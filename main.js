@@ -38,7 +38,8 @@
                 '<div class="gallery">',
                 '  <button class="gallery-nav prev" aria-label="Previous image" type="button">&#10094;</button>',
                 '  <div class="gallery-viewport">',
-                `    <img class="game-media" src="${escapeHtml(initialImage)}" alt="${escapeHtml(game.title || 'Game')} cover" loading="lazy">`,
+                // Deferred image: show placeholder first, real src in data-src
+                `    <img class="game-media" src="@loading.png" data-src="${escapeHtml(initialImage)}" alt="${escapeHtml(game.title || 'Game')} cover" loading="lazy">`,
                 '  </div>',
                 '  <button class="gallery-nav next" aria-label="Next image" type="button">&#10095;</button>',
                 '  <div class="gallery-thumbs" role="tablist" aria-label="Game screenshots"></div>',
@@ -157,11 +158,12 @@
     }
 
     function iconHtmlFor(id) {
+        // Use deferred loading with placeholder; correct asset paths
         if (id === 'telegram') {
-            return `<img src="images/telegram_icon.png" alt="Telegram" class="icon-img" loading="lazy">`;
+            return `<img src="@loading.png" data-src="images/telegram_icon.png" alt="Telegram" class="icon-img" loading="lazy">`;
         }
         if (id === 'email') {
-            return `<img src="images/email.png" alt="Email" class="icon-img" loading="lazy">`;
+            return `<img src="@loading.png" data-src="images/email.png" alt="Email" class="icon-img" loading="lazy">`;
         }
         switch (id) {
             // case 'email': return '✉️';
@@ -197,7 +199,12 @@
             if (!Array.isArray(images) || images.length === 0) return;
             currentIndex = (newIndex + images.length) % images.length;
             const nextSrc = images[currentIndex];
-            viewportImg.src = nextSrc;
+            // If image is not yet activated (still on placeholder), only update data-src
+            if (viewportImg.getAttribute('data-ready') === 'true') {
+                viewportImg.src = nextSrc;
+            } else {
+                viewportImg.setAttribute('data-src', nextSrc);
+            }
             updateThumbActive();
         }
 
@@ -220,7 +227,8 @@
             btn.setAttribute('aria-label', `Open image ${i + 1}`);
             btn.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
             btn.tabIndex = i === 0 ? 0 : -1;
-            btn.innerHTML = `<img src="${escapeAttribute(src)}" alt="Thumbnail ${i + 1}">`;
+            // Thumbnails also start with placeholder
+            btn.innerHTML = `<img src="@loading.png" data-src="${escapeAttribute(src)}" alt="Thumbnail ${i + 1}">`;
             btn.addEventListener('click', () => setIndex(i));
             thumbsEl.appendChild(btn);
         });
@@ -234,6 +242,21 @@
             if (e.key === 'ArrowRight') { setIndex(currentIndex + 1); }
         });
     }
+    
+    // After initial page load, swap all deferred images from placeholder to real sources
+    window.addEventListener('load', () => {
+        // Use RAF to ensure first paint is complete
+        requestAnimationFrame(() => {
+            const deferred = document.querySelectorAll('img[data-src]');
+            deferred.forEach((img) => {
+                const real = img.getAttribute('data-src');
+                if (real) {
+                    img.src = real;
+                    img.setAttribute('data-ready', 'true');
+                }
+            });
+        });
+    }, { once: true });
 })();
 
 
