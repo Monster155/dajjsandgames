@@ -160,10 +160,10 @@
     function iconHtmlFor(id) {
         // Use deferred loading with placeholder; correct asset paths
         if (id === 'telegram') {
-            return `<img src="@loading.png" data-src="images/telegram_icon.png" alt="Telegram" class="icon-img" loading="lazy">`;
+            return `<img src="@loading.png" data-src="images/contacts/telegram_icon.png" alt="Telegram" class="icon-img" loading="lazy">`;
         }
         if (id === 'email') {
-            return `<img src="@loading.png" data-src="images/email.png" alt="Email" class="icon-img" loading="lazy">`;
+            return `<img src="@loading.png" data-src="images/contacts/email.png" alt="Email" class="icon-img" loading="lazy">`;
         }
         switch (id) {
             // case 'email': return '✉️';
