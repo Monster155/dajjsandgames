@@ -36,11 +36,11 @@
 
             card.innerHTML = [
                 '<div class="gallery">',
-                '  <button class="gallery-nav prev" aria-label="Previous image" type="button">&#10094;</button>',
                 '  <div class="gallery-viewport">',
                 // Deferred image: show placeholder first, real src in data-src
                 `    <img class="game-media" src="@loading.png" data-src="${escapeHtml(initialImage)}" alt="${escapeHtml(game.title || 'Game')} cover" loading="lazy">`,
                 '  </div>',
+                '  <button class="gallery-nav prev" aria-label="Previous image" type="button">&#10094;</button>',
                 '  <button class="gallery-nav next" aria-label="Next image" type="button">&#10095;</button>',
                 '  <div class="gallery-thumbs" role="tablist" aria-label="Game screenshots"></div>',
                 '</div>',
