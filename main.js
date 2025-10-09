@@ -130,11 +130,26 @@
             const titleAttr = (typeof l.hoverText === 'string' && l.hoverText.trim().length > 0)
                 ? ` title="${escapeAttribute(l.hoverText)}"`
                 : '';
-            if(l.url === '') 
-                return `<div class="${classes.join(' ')}" target="_blank" rel="noopener"${titleAttr}>${escapeHtml(l.label || 'Open')}</div>`;
-            return `<a class="${classes.join(' ')}" href="${escapeAttribute(l.url)}" target="_blank" rel="noopener"${titleAttr}>${escapeHtml(l.label || 'Open')}</a>`;
+            const iconPath = iconForAction(l);
+            const iconHtml = iconPath
+                ? `<img class="btn-icon" src="@loading.png" data-src="${escapeAttribute(iconPath)}" alt="" aria-hidden="true">`
+                : '';
+            if(l.url === '')
+                return `<div class="${classes.join(' ')}" target="_blank" rel="noopener"${titleAttr}>${iconHtml}${escapeHtml(l.label || 'Open')}</div>`;
+            return `<a class="${classes.join(' ')}" href="${escapeAttribute(l.url)}" target="_blank" rel="noopener"${titleAttr}>${iconHtml}${escapeHtml(l.label || 'Open')}</a>`;
         }).join('');
         return `<div class="card-actions">${buttons}</div>`;
+    }
+
+    function iconForAction(link) {
+        const label = String(link.label || '').toLowerCase();
+        const url = String(link.url || '').toLowerCase();
+        if (label.includes('play market') || url.includes('play.google.com')) return 'images/common/icon_googleplay.svg';
+        if (label.includes('app store') || url.includes('apps.apple.com')) return 'images/common/icon_appstore.svg';
+        if (label.includes('steam') || url.includes('store.steampowered.com')) return 'images/common/icon_steam.svg';
+        if (label.includes('telegram') || url.includes('t.me')) return 'images/common/icon_telegram.svg';
+        if (label.includes('website') || label.includes('site') || url.startsWith('http')) return 'images/common/icon_link.svg';
+        return '';
     }
 
     // Minimal escaping helpers to prevent HTML injection
@@ -194,6 +209,16 @@
         if (!viewportImg || !prevBtn || !nextBtn || !thumbsEl) return;
 
         let currentIndex = 0;
+
+        // Hide nav buttons if only one image
+        const totalImages = Array.isArray(images) ? images.length : 0;
+        if (totalImages <= 1) {
+            prevBtn.style.display = 'none';
+            nextBtn.style.display = 'none';
+        } else {
+            prevBtn.style.display = '';
+            nextBtn.style.display = '';
+        }
 
         function setIndex(newIndex) {
             if (!Array.isArray(images) || images.length === 0) return;
